@@ -7,73 +7,65 @@ from threading import Thread
 # Press the green button in the gutter to run the script.
 class CustomListener(TuioListener):
 
-    def __init__(self):
+    def __init__(self, pygame):
         self.cursors = dict()
+        self.pygame = pygame
+        self.pygame_refresh_event = self.pygame.event.custom_type()
+        self.pygame.init()
         # Init stuff here
 
     def add_tuio_object(self, obj):
         """Abstract function to add a behavior for tuio add object event"""
         print("add_tuio_object")
         print(obj)
-        pass
 
     def update_tuio_object(self, obj):
         """Abstract function to add a behavior for tuio update object event"""
         print("update_tuio_object")
         print(obj)
-        pass
 
     def remove_tuio_object(self, obj):
         """Abstract function to add a behavior for tuio remove object event"""
         print("remove_tuio_object")
-        pass
 
     def add_tuio_cursor(self, cur):
         """Abstract function to add a behavior for tuio add cursor event"""
         self.cursors[cur.session_id] = cur.position
-        pass
 
     def update_tuio_cursor(self, cur):
         """Abstract function to add a behavior for tuio update cursor event"""
         print("update_tuio_cursor")
         self.cursors[cur.session_id] = cur.position
-        pass
 
     def remove_tuio_cursor(self, cur):
         """Abstract function to add a behavior for tuio remove cursor event"""
         print("remove_tuio_cursor")
         self.cursors.pop(cur.session_id)
-        pass
 
     def add_tuio_blob(self, blob):
         """Abstract function to add a behavior for tuio add blob event"""
         print("add_tuio_blob")
         print(blob)
-        pass
 
     def update_tuio_blob(self, blob):
         """Abstract function to add a behavior for tuio update blob event"""
         print("update_tuio_blob")
         print(blob)
-        pass
 
     def remove_tuio_blob(self, blob):
         """Abstract function to add a behavior for tuio remove blob event"""
         print("remove_tuio_blob")
         print(blob)
-        pass
 
     def refresh(self, time):
         """Abstract This callback method is invoked by the TuioClient
         to mark the end of a received TUIO message bundle."""
-        print("refresh")
         print("----------------------------------------------")
         for key in self.cursors:
             print(key, 'corresponds to', self.cursors[key])
         print("----------------------------------------------")
-        pass
-
-
+        ev = self.pygame.event.Event(self.pygame_refresh_event)
+        self.pygame.fastevent.post(ev)
 
 # ToDo(1) ● Implementierung der TuioClient API # (DONE)
 # ToDo(2) ● Auswerten der TUIO Events # (DONE)
