@@ -7,14 +7,20 @@ from threading import Thread
 # Press the green button in the gutter to run the script.
 class CustomListener(TuioListener):
 
+    def __init__(self):
+        self.cursors = dict()
+        # Init stuff here
+
     def add_tuio_object(self, obj):
         """Abstract function to add a behavior for tuio add object event"""
         print("add_tuio_object")
+        print(obj)
         pass
 
     def update_tuio_object(self, obj):
         """Abstract function to add a behavior for tuio update object event"""
         print("update_tuio_object")
+        print(obj)
         pass
 
     def remove_tuio_object(self, obj):
@@ -24,39 +30,50 @@ class CustomListener(TuioListener):
 
     def add_tuio_cursor(self, cur):
         """Abstract function to add a behavior for tuio add cursor event"""
-        print("add_tuio_cursor")
+        self.cursors[cur.session_id] = cur.position
         pass
 
     def update_tuio_cursor(self, cur):
         """Abstract function to add a behavior for tuio update cursor event"""
         print("update_tuio_cursor")
+        self.cursors[cur.session_id] = cur.position
         pass
 
     def remove_tuio_cursor(self, cur):
         """Abstract function to add a behavior for tuio remove cursor event"""
         print("remove_tuio_cursor")
+        self.cursors.pop(cur.session_id)
         pass
 
     def add_tuio_blob(self, blob):
         """Abstract function to add a behavior for tuio add blob event"""
         print("add_tuio_blob")
+        print(blob)
         pass
 
     def update_tuio_blob(self, blob):
         """Abstract function to add a behavior for tuio update blob event"""
         print("update_tuio_blob")
+        print(blob)
         pass
 
     def remove_tuio_blob(self, blob):
         """Abstract function to add a behavior for tuio remove blob event"""
         print("remove_tuio_blob")
+        print(blob)
         pass
 
     def refresh(self, time):
         """Abstract This callback method is invoked by the TuioClient
         to mark the end of a received TUIO message bundle."""
         print("refresh")
+        print("----------------------------------------------")
+        for key in self.cursors:
+            print(key, 'corresponds to', self.cursors[key])
+        print("----------------------------------------------")
         pass
+
+
 
 # ToDo(1) ● Implementierung der TuioClient API # (DONE)
 # ToDo(2) ● Auswerten der TUIO Events # (DONE)
@@ -73,6 +90,13 @@ class CustomListener(TuioListener):
 # ToDo(3.7) ● scale() -> Kont. Gesten
 # ToDo(3.8) ● Erweiterte Gestenerkennung (MUSS ?) -> Nicht Kontin. Gesten -> Sehr relevant für Benotung -> Keine False Positives idealerweise
 # ToDo(3.9) ● Normalisierung der Geste + Reduktion auf 32 Punkte einer unrealistischen Geste
+
+
+# 1. Kein Objekt
+# 2. Wenn per wer. GEsten etwas erkannt wird dann zeichen allgemein, nicht so wie user (Das gilt immer auch wenn schon was da ist)
+# 3. Kont. Gesten anwenden
+
+# Objekte -> Dreieck, Rechteck, Kreis
 
 ## Objekte aus Geste Erkennen -> Erstellen -> Löschen ->
 ## Es reicht simple impl. sauberes erkennen von Gesten !!! -> Klare erkennung von Geste ist relevant, was damit gesteuert wird nicht, es muss nur eindeutig sein !!!
