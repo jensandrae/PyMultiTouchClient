@@ -7,6 +7,7 @@ from pythontuio import TuioClient
 from threading import Thread
 from customListener import CustomListener
 import pygame
+import math
 
 
 display_width = 800
@@ -51,6 +52,8 @@ def init():
 
     refresh_event = custom_listener_obj.pygame_refresh_event
 
+    old_cursors = dict()
+
     done = False
     while not done:
         screen.fill([150, 150, 150])
@@ -58,11 +61,29 @@ def init():
             if event.type == pygame.QUIT:
                 done = True
             elif event.type == refresh_event:
-                drawCursors(custom_listener_obj, screen)
+                old_cursors = on_refresh(custom_listener_obj, screen, old_cursors)
 
         pygame.display.update()
         dt = clock.tick(30)
     pygame.quit()
+
+
+def on_refresh(custom_listener_obj, screen, old_cursors):
+    drawCursors(custom_listener_obj, screen)
+    current_cursors = custom_listener_obj.cursors.copy()
+
+    if len(current_cursors) == 2 and len(old_cursors) == 2:
+        if set(current_cursors.keys()) == set(old_cursors.keys()):
+            (key1, key2) = current_cursors.keys()
+            key1_point_new = current_cursors.get(key1)
+            key1_point_old = old_cursors.get(key1)
+            key2_point_new = current_cursors.get(key2)
+            key2_point_old = old_cursors.get(key2)
+            distance_new = math.dist(key1_point_new, key2_point_new)
+            distance_old = math.dist(key1_point_old, key2_point_old)
+            print(distance_old, distance_new)
+
+    return current_cursors
 
 
 if __name__ == '__main__':
