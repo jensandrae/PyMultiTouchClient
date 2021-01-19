@@ -320,6 +320,14 @@ if __name__ == "__main__":
     ci_x = 300
     ci_y = 300
 
+    # [100, 700], [500, 200], [900, 700]
+    a_x = 100
+    a_y = 700
+    b_x = 500
+    b_y = 200
+    c_x = 900
+    c_y = 700
+
     last_key = dict()
     old_cursors = dict()
     current_cursors = dict()
@@ -389,6 +397,14 @@ if __name__ == "__main__":
         # translating
         rect_x += trans_x
         rect_y += trans_y
+        ci_x += trans_x
+        ci_y += trans_y
+        a_x += trans_x
+        a_y += trans_y
+        b_x += trans_x
+        b_y += trans_y
+        c_x += trans_x
+        c_y += trans_y
 
         if last_state != current_state:
             rect_width = 500
@@ -398,18 +414,24 @@ if __name__ == "__main__":
             rect_y = 150
             ci_x = 300
             ci_y = 300
+            a_x = 100
+            a_y = 700
+            b_x = 500
+            b_y = 200
+            c_x = 900
+            c_y = 700
 
         if current_state == None:
             print("No figure detected")
         elif current_state == "circle":
             last_state = current_state
-            pygame.draw.circle(screen, colours_rand[2], [ci_x, ci_y], 200, 10)
+            pygame.draw.circle(screen, colours_rand[2], [ci_x, ci_y], circle_radius, 10)
         elif current_state == "square":
             last_state = current_state
             pygame.draw.rect(screen, colours_rand[0], [rect_x, rect_y, rect_width, rect_height], 10)
         elif current_state == "triangle":
             last_state = current_state
-            pygame.draw.polygon(screen, colours_rand[3], [[100, 700], [500, 200], [900, 700]], 10)
+            pygame.draw.polygon(screen, colours_rand[3], [[a_x, a_y], [b_x, b_y], [c_x, c_y]], 10)
 
         scale = 1
         trans_x = 0
