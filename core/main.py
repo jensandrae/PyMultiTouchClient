@@ -269,14 +269,15 @@ def init():
                 if len(custom_listener_obj.cursors) == 1:
                     # print("one finger")
                     if len(custom_listener_obj.cursors) == 1 and last_key == custom_listener_obj.cursors.keys():
-                        print("XXXXXX event_move - one finger - condition true")
-                        ## Working until here
-                        current_cursors = copy.deepcopy(custom_listener_obj.cursors)
-                        last_key = next(iter(current_cursors))
-                        (x, y) = next(iter(current_cursors.values()))
+                        if object_recognizer.mouseDown:
+                            print("XXXXXX event_move - one finger - condition true")
+                            ## Working until here
+                            current_cursors = copy.deepcopy(custom_listener_obj.cursors)
+                            last_key = next(iter(current_cursors))
+                            (x, y) = next(iter(current_cursors.values()))
 
-                        object_recognizer.positions.append((x, y, 'move'))
-                        object_recognizer.on_paint(None)
+                            object_recognizer.positions.append((x, y, 'move'))
+                            object_recognizer.on_paint(None)
 
             ###############################################################
             elif event.type == event_up:
