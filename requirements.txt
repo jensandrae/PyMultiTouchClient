@@ -1,4 +1,0 @@
-python-tuio
-python-osc
-PythonTurtle
-pygame

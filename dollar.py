@@ -1,287 +1,206 @@
-import math
-import operator
+# Python $1 Unistroke Recognizer
+#
+# This file contains a Python implementation of the $1 algorithm.
+# The material I used can be found online at:
+# http://depts.washington.edu/madlab/proj/dollar/index.html
+#
+# The academic publication for the $1 recognizer, and what should be
+# used to cite it, is:
+#
+#  Wobbrock, J.O., Wilson, A.D. and Li, Y. (2007). Gestures without
+#	   libraries, toolkits or training: A $1 recognizer for user interface
+#	   prototypes. Proceedings of the ACM Symposium on User Interface
+#	   Software and Technology (UIST '07). Newport, Rhode Island (October
+#	   7-10, 2007). New York: ACM Press, pp. 159-168.
+#
+# This software is distributed under the "New BSD License" agreement:
+#
+# Copyright (C) 2007-2012, Jacob O. Wobbrock, Andrew D. Wilson and Yang Li.
+# All rights reserved. Last updated July 14, 2018.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are met:
+#    * Redistributions of source code must retain the above copyright
+#      notice, this list of conditions and the following disclaimer.
+#    * Redistributions in binary form must reproduce the above copyright
+#      notice, this list of conditions and the following disclaimer in the
+#      documentation and/or other materials provided with the distribution.
+#    * Neither the names of the University of Washington nor Microsoft,
+#      nor the names of its contributors may be used to endorse or promote
+#      products derived from this software without specific prior written
+#      permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
+# IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+# THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+# PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL Jacob O. Wobbrock OR Andrew D. Wilson
+# OR Yang Li BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY,
+# OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
+# STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+# OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-numPoints = 64
-squareSize = 250.0
-halfDiagonal = 0.5 * math.sqrt(250.0 * 250.0 + 250.0 * 250.0)
-angleRange = 45.0
-anglePrecision = 2.0
-phi = 0.5 * (-1.0 + math.sqrt(5.0))  # Golden Ratio
+
+from math import pi, atan2, cos, sin, inf
+from templates import UNISTROKES
+
+RESAMPLE_SIZE = 64
+ORIGIN = (0, 0)
+SQUARE_SIZE = 350
+ANGLE_RANGE = (2 / 180) * pi
+ANGLE_PRECISION = (2 / 180) * pi
+PHI = 0.5 * (-1.0 + (5.0) ** 0.5)
 
 
-class Recognizer:
-    """The $1 gesture recognizer.
-   See http://sleepygeek.org/projects.dollar for more, ==> no more available
-   or http://depts.washington.edu/aimgroup/proj/dollar/ for the original implementation and paper."""
+class Dollar:
 
     def __init__(self):
-        self.templates = []
-        self.distances = []
-        self.scores = []
+        # format the example gestures
+        self.unistrokes = []
+        for template in UNISTROKES:
+            self.unistrokes.append(Stroke(template[1]))
+            self.unistrokes[-1].name = template[0]
 
-        self.all_names = []
-        self.num_templates = dict()
+    # Get a set of points and look if its a gesture (object)
+    def get_gesture(self, points):
+        stroke = Stroke(points)
+        # search for the closest gesture (ie. with minimal distance)
+        min_distance = inf
+        gesture_name = ''
+        for template_stroke in self.unistrokes:
+            distance = stroke.distance_at_best_angle(template_stroke.points)
+            if distance < min_distance:
+                # update the current best gesture
+                min_distance = distance
+                gesture_name = template_stroke.name
+        return gesture_name
 
-    def recognize(self, points):
-        """Determine which gesture template most closely matches the gesture represented by the input points.
-        'points' is a list of tuples, eg: [(1, 10), (3, 8) ...]. Returns a tuple of the form (name, score) where name
-        is the matching template, and score is a float [0..1] representing the match certainty. """
 
-        points = [Point(point[0], point[1]) for point in points]
-        points = _resample(points, numPoints);
-        points = _rotateToZero(points);
-        points = _scaleToSquare(points, squareSize);
-        points = _translateToOrigin(points);
+class Stroke:
 
-        bestDistance = float("infinity")
-        bestTemplate = None
-        for i, template in enumerate(self.templates):
-            distance = _distanceAtBestAngle(points, template, -angleRange, +angleRange, anglePrecision)
-            self.distances[i] = distance
-            if distance < bestDistance:
-                bestDistance = distance
-                bestTemplate = template
+    def __init__(self, points, should_format=True):
+        self.points = points
+        if should_format:
+            self.resample()
+            self.rotate_by(-self.indicative_angle())
+            self.scale_to(SQUARE_SIZE)
+            self.translate_to(ORIGIN)
 
-        score = 1.0 - (bestDistance / halfDiagonal)
-        self.scores = [1.0 - (d / halfDiagonal) for d in self.distances]
-
-        return (bestTemplate.index, bestTemplate.name, score)
-
-    def addTemplate(self, name, points):
-        """Add a new template, and assign it a name. Multiple templates can be given the same name, for more accurate
-        matching. Returns an integer representing the number of templates matching this name. """
-        self.templates.append(Template(name, points, len(self.templates)))
-        self.scores.append(0)
-        self.distances.append(0)
-
-        if not name in self.all_names:
-            self.all_names.append(name)
-            self.all_names.sort()
-            self.num_templates[name] = 1
-        else:
-            self.num_templates[name] += 1
-
-        self.templates.sort(key=operator.attrgetter('name'))
-
-        # Return the number of templates with this name.
-        return len([t for t in self.templates if t.name == name])
-
-    def addTemplates(self, data_dict):
-        for one_type in data_dict.keys():
-            if type(data_dict[one_type][0]) == list:
-                for one_data in data_dict[one_type]:
-                    self.addTemplate(one_type, one_data)
+    def resample(self):
+        points = self.points
+        I = self.path_length() / (RESAMPLE_SIZE - 1)
+        D = 0
+        new_points = [points[0]]
+        i = 1
+        while i < len(points):
+            previous, current = points[i - 1:i + 1]
+            d = distance(previous, current)
+            if ((D + d) >= I):
+                q = (previous[0] + ((I - D) / d) * (current[0] - previous[0]),
+                     previous[1] + ((I - D) / d) * (current[1] - previous[1]))
+                # append new point 'q'
+                new_points.append(q)
+                # insert 'q' at position i in points s.t. 'q' will be the next i
+                points.insert(i, q)
+                D = 0
             else:
-                self.addTemplate(one_type, data_dict[one_type])
+                D += d
+            i += 1
+        # somtimes we fall a rounding-error short of adding the last point, so
+        # add it if so
+        if len(new_points) == RESAMPLE_SIZE - 1:
+            new_points.append(new_points[-1])
+        self.points = new_points
 
-    def deleteTemplates(self, name):
-        """Remove all templates matching a given name. Returns an integer representing the new number of templates."""
+    def path_length(self):
+        d = 0
+        for i in range(1, len(self.points)):
+            d += distance(self.points[i - 1], self.points[i])
+        return d
 
-        self.templates = [t for t in self.templates if t.name != name]
-        return len(self.templates);
+    def indicative_angle(self):
+        # angle formed by (points[0], centroid) and the horizon
+        c = self.centroid()
+        return atan2(c[1] - self.points[0][1], c[0] - self.points[0][0])
 
-    def getTemplateNames(self, remove_duplicate=False):
-        gestureName_dict = dict()
+    def centroid(self):
+        n = len(self.points)
+        return (
+            sum([p[0] / n for p in self.points]),
+            sum([p[1] / n for p in self.points])
+        )
 
-        for i, one_template in enumerate(self.templates):
-            if remove_duplicate and one_template.name in gestureName_dict.values():
-                continue
-            gestureName_dict[i] = one_template.name
+    def rotate_by(self, angle):
+        c = self.centroid()
+        new_points = []
+        for p in self.points:
+            dx, dy = p[0] - c[0], p[1] - c[1]
+            new_points.append((
+                dx * cos(angle) - dy * sin(angle) + c[0],
+                dx * sin(angle) + dy * cos(angle) + c[1]
+            ))
+        self.points = new_points
 
-        return gestureName_dict
+    def scale_to(self, size):
+        B = self.bounding_box()
+        new_points = []
+        for p in self.points:
+            new_points.append((
+                p[0] * size / B[0],
+                p[1] * size / B[1]
+            ))
+        self.points = new_points
 
-    def getOneScrorebyGesture(self):
-        scores = []
-        start_index = 0
-        for one_key in self.num_templates.keys():
-            end_index = start_index + self.num_templates[one_key]
-            scores.append(max(self.scores[start_index:end_index]))
-            start_index = end_index
+    def bounding_box(self):
+        minX, maxX = inf, -inf
+        minY, maxY = inf, -inf
+        for point in self.points:
+            minX, maxX = min(minX, point[0]), max(maxX, point[0])
+            minY, maxY = min(minY, point[1]), max(maxY, point[1])
+        return (maxX - minX, maxY - minY)
 
-        return self.all_names, scores
+    def translate_to(self, target):
+        c = self.centroid()
+        new_points = []
+        for p in self.points:
+            new_points.append((
+                p[0] + target[0] - c[0],
+                p[1] + target[1] - c[1]
+            ))
+        self.points = new_points
 
+    def distance_at_best_angle(self, T):
+        a = -ANGLE_RANGE
+        b = ANGLE_RANGE
+        x1 = PHI * a + (1 - PHI) * b
+        x2 = PHI * b + (1 - PHI) * a
+        f1 = self.distance_at_angle(T, x1)
+        f2 = self.distance_at_angle(T, x2)
+        while abs(b - a) > ANGLE_PRECISION:
+            if f1 < f2:
+                b = x2
+                x2 = x1
+                f2 = f1
+                x1 = PHI * a + (1 * PHI) * b
+                f1 = self.distance_at_angle(T, x1)
+            else:
+                a = x1
+                x1 = x2
+                f1 = f2
+                x2 = PHI * b + (1 - PHI) * a
+                f2 = self.distance_at_angle(T, x2)
+        return min(f1, f2)
 
-class Point:
-    """Simple representation of a point."""
+    def distance_at_angle(self, T, angle):
+        rotated_stroke = Stroke(self.points, False)
+        rotated_stroke.rotate_by(angle)
+        return rotated_stroke.path_distance(T)
 
-    def __init__(self, x, y):
-        self.x = x
-        self.y = y
-
-
-class Rectangle:
-    """Simple representation of a rectangle."""
-
-    def __init__(self, x, y, width, height):
-        self.x = x
-        self.y = y
-        self.width = width
-        self.height = height
-
-
-class Template:
-    """A gesture template. Used internally by Recognizer."""
-
-    def __init__(self, name, points, index=-999):
-        """'name' is a label identifying this gesture, and 'points' is a list of tuple co-ordinates representing the gesture positions. Example: [(1, 10), (3, 8) ...]"""
-        self.name = name
-        self.points = [Point(point[0], point[1]) for point in points]
-        self.points = _resample(self.points, numPoints);
-        self.points = _rotateToZero(self.points);
-        self.points = _scaleToSquare(self.points, squareSize);
-        self.points = _translateToOrigin(self.points);
-
-        self.index = index;
-
-
-def _resample(points, n):
-    """Resample a set of points to a roughly equivalent, evenly-spaced set of points."""
-    I = _pathLength(points) / (n - 1)  # interval length
-    D = 0.0
-    newpoints = [points[0]]
-    i = 1
-    while i < len(points) - 1:
-        d = _distance(points[i - 1], points[i])
-        if (D + d) >= I:
-            qx = points[i - 1].x + ((I - D) / d) * (points[i].x - points[i - 1].x)
-            qy = points[i - 1].y + ((I - D) / d) * (points[i].y - points[i - 1].y)
-            q = Point(qx, qy)
-            newpoints.append(q)
-            # Insert 'q' at position i in points s.t. 'q' will be the next i
-            points.insert(i, q)
-            D = 0.0
-        else:
-            D += d
-        i += 1
-
-    # Sometimes we fall a rounding-error short of adding the last point, so add it if so.
-    if len(newpoints) == n - 1:
-        newpoints.append(points[-1])
-    return newpoints;
-
-
-def _rotateToZero(points):
-    """Rotate a set of points such that the angle between the first point and the centre point is 0."""
-    c = _centroid(points)
-    theta = math.atan2(c.y - points[0].y, c.x - points[0].x)
-    return _rotateBy(points, -theta)
-
-
-def _rotateBy(points, theta):
-    """Rotate a set of points by a given angle."""
-    c = _centroid(points);
-    cos = math.cos(theta);
-    sin = math.sin(theta);
-
-    newpoints = [];
-    for point in points:
-        qx = (point.x - c.x) * cos - (point.y - c.y) * sin + c.x
-        qy = (point.x - c.x) * sin + (point.y - c.y) * cos + c.y
-        newpoints.append(Point(qx, qy))
-    return newpoints
+    def path_distance(self, points):
+        n = len(points)
+        return sum([distance(self.points[i], points[i]) / n for i in range(n)])
 
 
-def _scaleToSquare(points, size):
-    """Scale a scale of points to fit a given bounding box."""
-    B = _boundingBox(points)
-    newpoints = []
-    for point in points:
-        qx = point.x * (size / B.width)
-        qy = point.y * (size / B.height)
-        newpoints.append(Point(qx, qy))
-    return newpoints
-
-
-def _translateToOrigin(points):
-    """Translate a set of points, placing the centre point at the origin."""
-    c = _centroid(points)
-    newpoints = []
-    for point in points:
-        qx = point.x - c.x
-        qy = point.y - c.y
-        newpoints.append(Point(qx, qy))
-    return newpoints;
-
-
-def _distanceAtBestAngle(points, T, a, b, threshold):
-    """Search for the best match between a set of points and a template, using a set of tolerances. Returns a float representing this minimum distance."""
-    x1 = phi * a + (1.0 - phi) * b
-    f1 = _distanceAtAngle(points, T, x1)
-    x2 = (1.0 - phi) * a + phi * b
-    f2 = _distanceAtAngle(points, T, x2)
-
-    while abs(b - a) > threshold:
-        if f1 < f2:
-            b = x2
-            x2 = x1
-            f2 = f1
-            x1 = phi * a + (1.0 - phi) * b
-            f1 = _distanceAtAngle(points, T, x1)
-        else:
-            a = x1
-            x1 = x2
-            f1 = f2
-            x2 = (1.0 - phi) * a + phi * b
-            f2 = _distanceAtAngle(points, T, x2)
-    return min(f1, f2)
-
-
-def _distanceAtAngle(points, T, theta):
-    """Returns the distance by which a set of points differs from a template when rotated by theta."""
-    newpoints = _rotateBy(points, theta)
-    return _pathDistance(newpoints, T.points)
-
-
-def _centroid(points):
-    """Returns the centre of a given set of points."""
-    x = 0.0
-    y = 0.0
-    for point in points:
-        x += point.x
-        y += point.y
-    x /= len(points)
-    y /= len(points)
-    return Point(x, y)
-
-
-def _boundingBox(points):
-    """Returns a Rectangle representing the bounding box that contains the given set of points."""
-    minX = float("+Infinity")
-    maxX = float("-Infinity")
-    minY = float("+Infinity")
-    maxY = float("-Infinity")
-
-    for point in points:
-        if point.x < minX:
-            minX = point.x
-        if point.x > maxX:
-            maxX = point.x
-        if point.y < minY:
-            minY = point.y
-        if point.y > maxY:
-            maxY = point.y
-
-    return Rectangle(minX, minY, maxX - minX, maxY - minY)
-
-
-def _pathDistance(pts1, pts2):
-    """'Distance' between two paths."""
-    d = 0.0;
-    for index in range(min(len(pts1), len(pts2))):  # assumes pts1.length == pts2.length
-        d += _distance(pts1[index], pts2[index])
-    return d / len(pts1)
-
-
-def _pathLength(points):
-    """Sum of distance between each point, or, length of the path represented by a set of points."""
-    d = 0.0;
-    for index in range(1, len(points)):
-        d += _distance(points[index - 1], points[index])
-    return d
-
-
-def _distance(p1, p2):
-    """Distance between two points."""
-    dx = p2.x - p1.x
-    dy = p2.y - p1.y
-    return math.sqrt(dx * dx + dy * dy)
+def distance(p1, p2):
+    return ((p2[0] - p1[0]) ** 2 + (p2[1] - p1[1]) ** 2) ** 0.5
