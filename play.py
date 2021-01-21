@@ -23,6 +23,8 @@ class Play:
         self.drawn_points = []
 
         # Main Stuff
+        self.display_height = 600
+        self.display_width = 900
         self.old_point = (None, None)
         self.points = []
         self.dollar = Dollar()
@@ -31,13 +33,11 @@ class Play:
         self.pygame.font.init()
         self.pygame.fastevent.init()
         self.clock = self.pygame.time.Clock()
-        self.screen = self.pygame.display.set_mode((500, 500))
+        self.screen = self.pygame.display.set_mode((self.display_width, self.display_height))
         self.done = False
         self.actual_gesture = self.reset_gesture
 
         # Display setting
-        self.display_width = 500
-        self.display_height = 500
         self.background = (200, 200, 200, 255)
         self.font = pygame.font.SysFont('hack', 40)
         self.fontBig = pygame.font.SysFont('hack', 40)
@@ -131,8 +131,14 @@ class Play:
                 # Now we can draw a new gesture
                 self.actual_state = self.actual_gesture
                 self.first_draw_after_reset_done = True
-                self.drawn_points = self.points
-                print()
+                new_points = copy.deepcopy(self.points)
+                self.drawn_points = []
+                scale = 1.0
+                for pnt in new_points:
+                    (x, y) = pnt
+                    x *= self.display_width * x * scale
+                    y *= self.display_width * y * scale
+                    self.drawn_points.append([x, y])
 
     # Acts depending on the state of the state machine
     def handle_state(self):
@@ -143,7 +149,7 @@ class Play:
         elif self.actual_state != self.none_state:
             if len(self.drawn_points) > 2:
                 # pygame.draw.lines(self.screen, (0, 255, 0), False, self.drawn_points, 5)
-                pygame.draw.lines(self.screen, (0, 255, 0), False, [[0, 300], [300, 300], [400, 400], [100, 100]], 5)
+                pygame.draw.lines(self.screen, (0, 255, 0), False, self.drawn_points, 5)
                 # pygame.draw.circle(self.screen, self.color_cursor, (200, 200), 200)
                 # display the drawn figure
                 pass
