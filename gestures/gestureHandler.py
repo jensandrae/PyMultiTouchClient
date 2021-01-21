@@ -32,9 +32,15 @@ class GestureHandler:
         self.display_height = display_height
         self.points = []
         self.min_scale = 0.015
-        self.object_handler = ObjectHandler()
+        self.object_handler = ObjectHandler(display_width, display_height)
+        self.scale = 1
 
+    ######################################################
+    # Handler...
     def handle(self, points, current_cursors, old_cursors):
+        """Handler - This function is called with a set of points (drawn object)
+        that should be processed with gestures. The drawn object get processed by different
+        here defined touch gestures. After processing them a new set of points will be returned. """
 
         self.current_cursors = current_cursors
         self.old_cursors = old_cursors
@@ -50,16 +56,12 @@ class GestureHandler:
             # return self.points
 
         elif self.is_three_finger_move():
-            return self.points
+            return self.process_three_finger_move()
 
         return points
 
-    # ONE FINGER MOVE
-    def is_one_finger_move(self):
-        if self.check_finger(1):
-            return True
-        return False
-
+    ######################################################
+    # Processing....
     def process_two_finger_move(self):
         print("SCALING ACTIVE")
         (key1, key2) = self.current_cursors.keys()
@@ -97,14 +99,31 @@ class GestureHandler:
 
         return self.object_handler.scale(self.points, self.scale)
 
-    # TWO FINGER SCALE
+    # Process - Three finger move
+    def process_three_finger_move(self):
+        # current_point and old_point are between 0 to 1
+        # points are between 0 and display height / width
+        current_point = self.current_cursors.get(next(iter(self.current_cursors)))
+        old_point = self.old_cursors.get(next(iter(self.old_cursors)))
+        return self.object_handler.translate(self.points, old_point, current_point)
+
+    ######################################################
+    # Checking....
+
+    # ONE FINGER MOVE
+    def is_one_finger_move(self):
+        if self.check_finger(1):
+            return True
+        return False
+
+    # Check - If is a two finger move
     def is_two_finger_scaling(self):
         if self.check_finger(2):
             if set(self.current_cursors.keys()) == set(self.old_cursors.keys()):
                 return True
         return False
 
-    # THREE FINGER MOVE (SYNC)
+    # Check - If is a synced three finger move
     def is_three_finger_move(self):
         # Value for accuracy between the fingers, if true it is a correct 3 finger translation
         is_three_finger_move = False
@@ -149,7 +168,7 @@ class GestureHandler:
 
         return is_three_finger_move
 
-    # FOUR FINGER MOVE (SYNC)
+    # Check - If is a synced four finger move
     def is_four_finger_move(self):
         # ToDo: Important - Break this function down to a simple logik, use it here and same with 3 finger
         # Value for accuracy between the fingers, if true it is a correct 3 finger translation
@@ -207,6 +226,7 @@ class GestureHandler:
 
         return is_four_finger_move
 
+    # Check - The amount of fingers between two frames
     def check_finger(self, fingers):
         if len(self.current_cursors) == fingers and len(self.old_cursors) == fingers:
             if set(self.current_cursors.keys()) == set(self.old_cursors.keys()):

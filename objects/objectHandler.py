@@ -3,13 +3,15 @@ import math
 
 class ObjectHandler:
 
-    def __init__(self):
+    def __init__(self, display_width, display_height):
         self.numPoints = 64
         self.squareSize = 250.0
         self.halfDiagonal = 0.5 * math.sqrt(250.0 * 250.0 + 250.0 * 250.0)
         self.angleRange = 45.0
         self.anglePrecision = 2.0
         self.phi = 0.5 * (-1.0 + math.sqrt(5.0))  # Golden Ratio
+        self.display_height = display_height
+        self.display_width = display_width
 
     def scale(self, points, factor):
         """Scales a set of points"""
@@ -22,17 +24,17 @@ class ObjectHandler:
 
         return new_points
 
-    def translate(self, points, point_old, point_new):
+    def translate(self, points, old_point, current_point):
         """Translate a set of points"""
-        (x_old, y_old) = point_old
-        (x_new, y_new) = point_new
-        offset_x = x_new - x_old
-        offset_y = y_new - y_old
+        (x_old, y_old) = old_point
+        (x_current, y_current) = current_point
+        offset_x = x_current - x_old
+        offset_y = y_current - y_old
 
         new_points = []
         for index in points:
             (x, y) = index
-            new_points.append(x * offset_x, y * offset_y)
+            new_points.append((x + offset_x * self.display_width, y + offset_y * self.display_height))
 
         return new_points
 
