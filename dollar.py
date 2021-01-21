@@ -50,7 +50,7 @@ ORIGIN = (0, 0)
 SQUARE_SIZE = 350
 ANGLE_RANGE = (2 / 180) * pi
 ANGLE_PRECISION = (2 / 180) * pi
-PHI = 0.5 * (-1.0 + (5.0) ** 0.5)
+PHI = 0.5 * (-1.0 + 5.0 ** 0.5)
 
 
 class Dollar:
@@ -62,8 +62,8 @@ class Dollar:
             self.unistrokes.append(Stroke(template[1]))
             self.unistrokes[-1].name = template[0]
 
-    # Get a set of points and look if its a gesture (object)
-    def get_gesture(self, points):
+    # Get a set of points and look if its a drawn object (gesture)
+    def get_object_by_gesture(self, points):
         stroke = Stroke(points)
         # search for the closest gesture (ie. with minimal distance)
         min_distance = inf
@@ -75,6 +75,14 @@ class Dollar:
                 min_distance = distance
                 gesture_name = template_stroke.name
         return gesture_name
+
+    def example(self):
+        # ToDo: Here we cann implement the gesture recognizing (Not Object)
+        #  * Single Finger Move
+        #  * Two Finger Move
+        #  * Three Finger Move
+        #  * Four Finger Move
+        return None
 
 
 class Stroke:
