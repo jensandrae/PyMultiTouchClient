@@ -18,7 +18,7 @@ class Play:
         # Main Stuff
         self.old_point = (None, None)
         self.points = []
-        self.recognizer = Dollar()
+        self.dollar = Dollar()
         self.pygame = pygame
         self.pygame.init()
         self.pygame.font.init()
@@ -57,9 +57,11 @@ class Play:
         # Starts the main loop
         self.run()
 
-    def move(self, actual_cursor):  ## EVENT MOVE
+    # Move of a or multiple cursors, adds points to dollar algorithm
+    def move(self, actual_cursor):
         if len(actual_cursor) > 0:
-            point = next(iter(actual_cursor.values()))  # set here the new point
+            # set here the new point
+            point = next(iter(actual_cursor.values()))
             # point = (event.x, event.y)
             # if self.old_point != (None, None):
             # self.canvas.create_line(self.old_point, point, width=self.PEN_SIZE)
@@ -68,10 +70,12 @@ class Play:
             self.points.append(point)
             self.old_point = point
 
-    def reset(self):  ## EVENT UP
+    # Event Up, check if a gesture was drawn (Mouse Up)
+    def reset(self):
         self.old_point = (None, None)
         self.points = []
 
+    # Display Cursor in Pygame
     def draw_cursors(self, cursors):
         touch_size = 5
 
@@ -86,50 +90,70 @@ class Play:
                 self.color_cursor,
                 (x * self.display_width, y * self.display_height), touch_size)
 
+    # Display some additional info in the pygame windows
     def display_info(self):
         self.screen.blit(self.font.render("Froemmer - Multitouch Gesture App", True, self.color_info), (10, 10))
         self.screen.blit(self.font.render(self.all_types_string, True, self.color_info), (20, 30))
         self.screen.blit(self.font.render("Last drawn gesture: %s" % self.last_gesture, True, self.color_info),
                          (20, 60))
 
-    def display_last_object(self):
+    #
+    def get_gesture_from_dollar_algo(self):
         if len(self.points) == 0:
             return
         else:
-            self.last_gesture = self.recognizer.get_gesture(self.points)
+            # ##########################################################################
+            # Important, here is the only direct shint point with the dollar algorithm #
+            # ##########################################################################
+            # We give our actual set of pints an get the gesture for these points      #
+            # ##########################################################################
+            self.last_gesture = self.dollar.get_gesture(self.points)
 
     def run(self):
 
+        # Main Looooop....
         while not self.done:
 
+            # Set actual_cursor as a copy, (self.listener.cursors)
+            # can change while a single poll is running
             actual_cursor = copy.deepcopy(self.listener.cursors)
+
+            # PyGame set Background
             self.screen.fill([255, 255, 255])
 
+            # Check all pygame Events...
             for event in self.pygame.event.get():
+
+                # Quit (close windows), quit by user
                 if event.type == self.pygame.QUIT:
                     self.done = True
 
+                # Quit (klick escape), quit by user
                 elif event.type == self.pygame.KEYDOWN:
                     if event.key == self.pygame.K_ESCAPE:
                         self.done = True
 
+                # TUIO Event, new cursor
                 elif event.type == self.event_down:
                     print()
 
+                # TUIO Event, cursor move (one or more)
                 elif event.type == self.event_move:
                     self.move(actual_cursor)
 
+                # TUIO Event, cursor up
                 elif event.type == self.event_up:
-                    self.display_last_object()
+                    self.get_gesture_from_dollar_algo()
                     self.reset()
 
+                # TUIO Event, if tuio server sends new data
                 elif event.type == self.event_refresh:
                     print()
 
             self.display_info()
             self.draw_cursors(actual_cursor)
             self.pygame.display.flip()
-            dt = self.clock.tick(30)
+            self.clock.tick(30)
 
         self.pygame.quit()
 
