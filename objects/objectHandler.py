@@ -16,6 +16,8 @@ class ObjectHandler:
     def scale(self, points, factor):
         """Scales a set of points"""
         # ToDo: IMPORTANT - Implement real scaling !!!
+        #  This can only be done by using "calculate_center()".
+        #  Have to use scaling from or to the center of the object for each point.
 
         new_points = []
         for index in points:
@@ -37,6 +39,29 @@ class ObjectHandler:
             new_points.append((x + offset_x * self.display_width, y + offset_y * self.display_height))
 
         return new_points
+
+    def rotate(self, points, angle):
+        """ Rotate a set of points counterclockwise by a given angle around a calculated origin.
+        Minimum are three different points. The angle should be given in radians. """
+
+        origin = self.calculate_center(points)
+        print("Calculated origin: ", origin)
+        rotated_points = []
+
+        for single_point in points:
+            rotated_points.append(self.rotate_single_point(origin, single_point, angle))
+
+        return rotated_points
+
+    def rotate_single_point(self, point_origin, point_rotate, angle):
+        """ Rotate a point counterclockwise by a given angle around a given origin.
+        The angle should be given in radians. """
+        ox, oy = point_origin
+        px, py = point_rotate
+
+        qx = ox + math.cos(angle) * (px - ox) - math.sin(angle) * (py - oy)
+        qy = oy + math.sin(angle) * (px - ox) + math.cos(angle) * (py - oy)
+        return qx, qy
 
     def calculate_center(self, points):
         """Calculate the center of a set of points"""
@@ -68,6 +93,10 @@ class ObjectHandler:
 
     def distance(self, p1, p2):
         """Distance between two points."""
-        dx = p2.x - p1.x
-        dy = p2.y - p1.y
+
+        (x_old, y_old) = p1
+        (x_current, y_current) = p2
+
+        dx = x_current - x_old
+        dy = y_current - y_old
         return math.sqrt(dx * dx + dy * dy)

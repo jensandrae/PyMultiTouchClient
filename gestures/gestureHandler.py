@@ -58,12 +58,17 @@ class GestureHandler:
         elif self.is_three_finger_move():
             return self.process_three_finger_move()
 
+        elif self.is_four_finger_move():
+            return self.process_four_finger_move()
+
         return points
 
     ######################################################
     # Processing....
+
+    # Process - Two finger move (scale object)
     def process_two_finger_move(self):
-        print("SCALING ACTIVE")
+        print("process_two_finger_move()")
         (key1, key2) = self.current_cursors.keys()
 
         # x y from the newest courser finger 1
@@ -99,13 +104,24 @@ class GestureHandler:
 
         return self.object_handler.scale(self.points, self.scale)
 
-    # Process - Three finger move
+    # Process - Three finger move (move object)
     def process_three_finger_move(self):
+        print("process_three_finger_move()")
         # current_point and old_point are between 0 to 1
         # points are between 0 and display height / width
         current_point = self.current_cursors.get(next(iter(self.current_cursors)))
         old_point = self.old_cursors.get(next(iter(self.old_cursors)))
         return self.object_handler.translate(self.points, old_point, current_point)
+
+    # Process - Four finger move (rotate object)
+    def process_four_finger_move(self):
+        print("process_four_finger_move()")
+        # ToDo: Do a real implementation
+        angle = 0.05
+
+        print("Angle for rotation: ", angle)
+
+        return self.object_handler.rotate(self.points, angle)
 
     ######################################################
     # Checking....

@@ -47,6 +47,7 @@ class Play:
         self.color_generator = ColorGenerator()
         self.color_cursor = self.color_generator.get_new_color_preset()
         self.color_info = self.color_generator.get_new_color_preset()
+        self.color_object = self.color_generator.get_new_color_preset()
 
         # TUIO Client & Listener
         self.client = TuioClient(("localhost", 3333))
@@ -128,6 +129,7 @@ class Play:
         if self.actual_gesture == self.reset_gesture:
             self.actual_state = self.none_state
             self.first_draw_after_reset_done = False
+            self.color_object = self.color_generator.get_new_color_preset()
 
         # ElseIf actual gesture is not the reset gesture (of course delete)
         elif self.actual_gesture != self.reset_gesture:
@@ -155,7 +157,7 @@ class Play:
             if len(self.drawn_points) > 2:
                 # pygame.draw.lines(self.screen, (0, 255, 0), False, self.drawn_points, 5)
                 self.drawn_points = self.gesture_handler.handle(self.drawn_points, self.actual_cursor, self.old_cursors)
-                pygame.draw.lines(self.screen, (0, 255, 0), False, self.drawn_points, 5)
+                pygame.draw.lines(self.screen, self.color_object, False, self.drawn_points, 5)
                 # pygame.draw.circle(self.screen, self.color_cursor, (200, 200), 200)
                 # display the drawn figure
                 pass
