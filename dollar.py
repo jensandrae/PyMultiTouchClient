@@ -96,31 +96,29 @@ class Stroke:
             self.translate_to(ORIGIN)
 
     def resample(self):
-        points = self.points
-        I = self.path_length() / (RESAMPLE_SIZE - 1)
-        D = 0
-        new_points = [points[0]]
+        """Resample a set of points to a roughly equivalent, evenly-spaced set of points."""
+        I = self.path_length() / (RESAMPLE_SIZE - 1)  # interval length
+        D = 0.0
+        newpoints = [self.points[0]]
         i = 1
-        while i < len(points):
-            previous, current = points[i - 1:i + 1]
-            d = distance(previous, current)
+        while i < len(self.points) - 1:
+            d = distance(self.points[i - 1], self.points[i])
             if (D + d) >= I:
-                # ToDo: increment precision "ZeroDivisionError: float division by zero"
-                q = (previous[0] + ((I - D) / d) * (current[0] - previous[0]),
-                     previous[1] + ((I - D) / d) * (current[1] - previous[1]))
-                # append new point 'q'
-                new_points.append(q)
-                # insert 'q' at position i in points s.t. 'q' will be the next i
-                points.insert(i, q)
-                D = 0
+                qx = self.points[i - 1][0] + ((I - D) / d) * (self.points[i][0] - self.points[i - 1][0])
+                qy = self.points[i - 1][1] + ((I - D) / d) * (self.points[i][1] - self.points[i - 1][1])
+                q = (qx, qy)
+                newpoints.append(q)
+                # Insert 'q' at position i in points s.t. 'q' will be the next i
+                self.points.insert(i, q)
+                D = 0.0
             else:
                 D += d
             i += 1
-        # somtimes we fall a rounding-error short of adding the last point, so
-        # add it if so
-        if len(new_points) == RESAMPLE_SIZE - 1:
-            new_points.append(new_points[-1])
-        self.points = new_points
+
+        # Sometimes we fall a rounding-error short of adding the last point, so add it if so.
+        if len(newpoints) == RESAMPLE_SIZE - 1:
+            newpoints.append(self.points[-1])
+        self.points = newpoints
 
     def path_length(self):
         d = 0
@@ -152,13 +150,13 @@ class Stroke:
         self.points = new_points
 
     def scale_to(self, size):
+        """Scale a scale of points to fit a given bounding box."""
         B = self.bounding_box()
         new_points = []
-        for p in self.points:
-            new_points.append((
-                p[0] * size / B[0],
-                p[1] * size / B[1]
-            ))
+        for point in self.points:
+            qx = point[0] * (size / B[0])
+            qy = point[1] * (size / B[1])
+            new_points.append((qx, qy))
         self.points = new_points
 
     def bounding_box(self):

@@ -150,18 +150,13 @@ class Play:
     # Acts depending on the state of the state machine
     def handle_state(self):
 
-        if self.actual_state == self.none_state:
-            # reset everything and show nothing
-            pass
-        elif self.actual_state != self.none_state:
+        if self.actual_state != self.none_state:
             if len(self.drawn_points) > 2:
                 # pygame.draw.lines(self.screen, (0, 255, 0), False, self.drawn_points, 5)
                 self.drawn_points = self.gesture_handler.handle(self.drawn_points, self.actual_cursor, self.old_cursors)
                 pygame.draw.lines(self.screen, self.color_object, False, self.drawn_points, 5)
                 # pygame.draw.circle(self.screen, self.color_cursor, (200, 200), 200)
                 # display the drawn figure
-                pass
-        pass
 
     def run(self):
 
@@ -190,6 +185,7 @@ class Play:
 
                 # TUIO Event, new cursor
                 elif event.type == self.event_down:
+                    self.move(self.actual_cursor)
                     pass
 
                 # TUIO Event, cursor move (one or more)
