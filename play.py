@@ -1,10 +1,10 @@
-import random
 import pygame
 import copy
 
-from dollar import Dollar
 from tuioclient.Listener import Listener
 from objects.colorGenerator import ColorGenerator
+from gestures.gestureHandler import GestureHandler
+from dollar import Dollar
 from pythontuio import TuioClient
 from threading import Thread
 
@@ -61,6 +61,11 @@ class Play:
         self.client.add_listener(self.listener)
         self.thread.start()
 
+        # Gesture Handler
+        self.gesture_handler = GestureHandler(self.display_width, self.display_height)
+        self.old_cursors = []
+        self.actual_cursor = []
+
         # Starts the main loop
         self.run()
 
@@ -91,7 +96,7 @@ class Play:
                 print("No value")
                 return
             (x, y) = value
-            print(value)
+            # print(value)
             self.pygame.draw.circle(
                 self.screen,
                 self.color_cursor,
@@ -162,7 +167,8 @@ class Play:
 
             # Set actual_cursor as a copy, (self.listener.cursors)
             # can change while a single poll is running
-            actual_cursor = copy.deepcopy(self.listener.cursors)
+            self.old_cursors = copy.deepcopy(self.actual_cursor)
+            self.actual_cursor = copy.deepcopy(self.listener.cursors)
 
             # PyGame set Background
             self.screen.fill([255, 255, 255])
@@ -185,7 +191,7 @@ class Play:
 
                 # TUIO Event, cursor move (one or more)
                 elif event.type == self.event_move:
-                    self.move(actual_cursor)
+                    self.move(self.actual_cursor)
 
                 # TUIO Event, cursor up
                 elif event.type == self.event_up:
@@ -197,9 +203,12 @@ class Play:
                 elif event.type == self.event_refresh:
                     pass
 
+            # ToDo: Not the right place, test it....
+            self.gesture_handler.handle(self.drawn_points, self.actual_cursor, self.old_cursors)
+
             self.handle_state()
             self.display_info()
-            self.draw_cursors(actual_cursor)
+            self.draw_cursors(self.actual_cursor)
             self.pygame.display.flip()
             self.clock.tick(30)
 
