@@ -18,7 +18,7 @@ class ObjectHandler:
         new_points = []
         for index in points:
             (x, y) = index
-            new_points.append(x * factor, y * factor)
+            new_points.append((x * factor, y * factor))
 
         return new_points
 

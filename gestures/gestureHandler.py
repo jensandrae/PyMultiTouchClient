@@ -46,8 +46,8 @@ class GestureHandler:
 
         elif self.is_two_finger_scaling():
             # ToDo: Check functionality ! Uncomment...
-            # return self.process_two_finger_move()
-            return self.points
+            return self.process_two_finger_move()
+            # return self.points
 
         elif self.is_three_finger_move():
             return self.points

@@ -154,6 +154,7 @@ class Play:
         elif self.actual_state != self.none_state:
             if len(self.drawn_points) > 2:
                 # pygame.draw.lines(self.screen, (0, 255, 0), False, self.drawn_points, 5)
+                self.drawn_points = self.gesture_handler.handle(self.drawn_points, self.actual_cursor, self.old_cursors)
                 pygame.draw.lines(self.screen, (0, 255, 0), False, self.drawn_points, 5)
                 # pygame.draw.circle(self.screen, self.color_cursor, (200, 200), 200)
                 # display the drawn figure
@@ -202,9 +203,6 @@ class Play:
                 # TUIO Event, if tuio server sends new data
                 elif event.type == self.event_refresh:
                     pass
-
-            # ToDo: Not the right place, test it....
-            self.gesture_handler.handle(self.drawn_points, self.actual_cursor, self.old_cursors)
 
             self.handle_state()
             self.display_info()

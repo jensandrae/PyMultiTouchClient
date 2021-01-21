@@ -104,7 +104,8 @@ class Stroke:
         while i < len(points):
             previous, current = points[i - 1:i + 1]
             d = distance(previous, current)
-            if ((D + d) >= I):
+            if (D + d) >= I:
+                # ToDo: increment precision "ZeroDivisionError: float division by zero"
                 q = (previous[0] + ((I - D) / d) * (current[0] - previous[0]),
                      previous[1] + ((I - D) / d) * (current[1] - previous[1]))
                 # append new point 'q'
