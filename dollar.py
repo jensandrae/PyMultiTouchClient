@@ -101,19 +101,22 @@ class Stroke:
         D = 0.0
         newpoints = [self.points[0]]
         i = 1
-        while i < len(self.points) - 1:
-            d = distance(self.points[i - 1], self.points[i])
-            if (D + d) >= I:
-                qx = self.points[i - 1][0] + ((I - D) / d) * (self.points[i][0] - self.points[i - 1][0])
-                qy = self.points[i - 1][1] + ((I - D) / d) * (self.points[i][1] - self.points[i - 1][1])
-                q = (qx, qy)
-                newpoints.append(q)
-                # Insert 'q' at position i in points s.t. 'q' will be the next i
-                self.points.insert(i, q)
-                D = 0.0
-            else:
-                D += d
-            i += 1
+        try:
+            while i < len(self.points) - 1:
+                d = distance(self.points[i - 1], self.points[i])
+                if (D + d) >= I:
+                    qx = self.points[i - 1][0] + ((I - D) / d) * (self.points[i][0] - self.points[i - 1][0])
+                    qy = self.points[i - 1][1] + ((I - D) / d) * (self.points[i][1] - self.points[i - 1][1])
+                    q = (qx, qy)
+                    newpoints.append(q)
+                    # Insert 'q' at position i in points s.t. 'q' will be the next i
+                    self.points.insert(i, q)
+                    D = 0.0
+                else:
+                    D += d
+                i += 1
+        except:
+            pass
 
         # Sometimes we fall a rounding-error short of adding the last point, so add it if so.
         if len(newpoints) == RESAMPLE_SIZE - 1:
@@ -153,11 +156,14 @@ class Stroke:
         """Scale a scale of points to fit a given bounding box."""
         B = self.bounding_box()
         new_points = []
-        for point in self.points:
-            qx = point[0] * (size / B[0])
-            qy = point[1] * (size / B[1])
-            new_points.append((qx, qy))
-        self.points = new_points
+        try:
+            for point in self.points:
+                qx = point[0] * (size / B[0])
+                qy = point[1] * (size / B[1])
+                new_points.append((qx, qy))
+            self.points = new_points
+        except:
+            pass
 
     def bounding_box(self):
         minX, maxX = inf, -inf
@@ -206,7 +212,10 @@ class Stroke:
 
     def path_distance(self, points):
         n = len(points)
-        return sum([distance(self.points[i], points[i]) / n for i in range(n)])
+        try:
+            return sum([distance(self.points[i], points[i]) / n for i in range(n)])
+        except:
+            return 1
 
 
 def distance(p1, p2):
