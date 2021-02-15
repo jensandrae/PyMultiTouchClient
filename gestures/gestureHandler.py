@@ -1,3 +1,4 @@
+import copy
 import math
 from objects.objectHandler import ObjectHandler
 
@@ -10,7 +11,6 @@ def difference_is_ok(key1, key2):
     if (key2 * (1 - sc_new)) < key1 < (key2 * (1 + sc_new)):
         return True
     return False
-
 
 class GestureHandler:
     """ Detects gestures and process them. """
@@ -30,44 +30,61 @@ class GestureHandler:
         self.old_cursors = dict()
         self.display_width = display_width
         self.display_height = display_height
-        self.points = []
+        self.chosen_object = []
+        self.drawn_objects = []
         self.min_scale = 0.015
         self.object_handler = ObjectHandler(display_width, display_height)
         self.scale = 1
 
     ######################################################
     # Handler...
-    def handle(self, points, current_cursors, old_cursors):
+    def handle(self, drawn_objects, current_cursors, old_cursors):
         """Handler - This function is called with a set of points (drawn object)
         that should be processed with gestures. The drawn object get processed by different
         here defined touch gestures. After processing them a new set of points will be returned. """
 
         self.current_cursors = current_cursors
         self.old_cursors = old_cursors
-        self.points = points
+        self.drawn_objects = drawn_objects
 
         # Check if cursors are valid, if note return the processed points
         if self.is_one_finger_move():
-            return self.points
+            return self.drawn_objects
 
         elif self.is_two_finger_scaling():
             # ToDo: Check functionality ! Uncomment...
-            return self.process_two_finger_move()
+            new_array = []
+            for drawn_object in self.drawn_objects:
+                self.chosen_object = copy.deepcopy(drawn_object)
+                new_array.append(self.process_two_finger_move())
+            return new_array
             # return self.points
 
         elif self.is_three_finger_move():
-            return self.process_three_finger_move()
+            new_array = []
+            for drawn_object in self.drawn_objects:
+                self.chosen_object = copy.deepcopy(drawn_object)
+                new_array.append(self.process_three_finger_move())
+            return new_array
 
         elif self.is_four_finger_move():
-            return self.process_four_finger_move()
+            new_array = []
+            for drawn_object in self.drawn_objects:
+                self.chosen_object = copy.deepcopy(drawn_object)
+                new_array.append(self.process_four_finger_move())
+            return new_array
 
-        return points
+        return self.drawn_objects
 
     ######################################################
     # Processing....
 
     # Process - Two finger move (scale object)
     def process_two_finger_move(self):
+
+        if not self.check_bounding():
+            return self.chosen_object
+
         print("process_two_finger_move()")
         (key1, key2) = self.current_cursors.keys()
 
@@ -102,26 +119,54 @@ class GestureHandler:
         else:
             self.scale = 1
 
-        return self.object_handler.scale(self.points, self.scale)
+        # ToDo: Check Hitbox !
+
+        return self.object_handler.scale(self.chosen_object, self.scale)
 
     # Process - Three finger move (move object)
     def process_three_finger_move(self):
+
+        if not self.check_bounding():
+            return self.chosen_object
+
         print("process_three_finger_move()")
         # current_point and old_point are between 0 to 1
         # points are between 0 and display height / width
         current_point = self.current_cursors.get(next(iter(self.current_cursors)))
         old_point = self.old_cursors.get(next(iter(self.old_cursors)))
-        return self.object_handler.translate(self.points, old_point, current_point)
+        return self.object_handler.translate(self.chosen_object, old_point, current_point)
 
     # Process - Four finger move (rotate object)
     def process_four_finger_move(self):
+
+        if not self.check_bounding():
+            return self.chosen_object
+
         print("process_four_finger_move()")
         # ToDo: Do a real implementation
         angle = 0.05
 
         print("Angle for rotation: ", angle)
 
-        return self.object_handler.rotate(self.points, angle)
+        return self.object_handler.rotate(self.chosen_object, angle)
+
+    # Check if a gesture is chosen by cursor
+    def check_bounding(self):
+        offset = 20
+        center = self.object_handler.calculate_center(self.chosen_object)
+        for point_object in self.chosen_object:
+            (po_x, po_y) = point_object
+            (cu_x, cu_y) = self.current_cursors.get(next(iter(self.current_cursors)))
+
+            new_point = (cu_x * self.display_width, cu_y * self.display_height)
+
+            distance = self.object_handler.distance(point_object, new_point)
+            distance_center = self.object_handler.distance(new_point, center)
+
+            if distance < offset or distance_center < (offset * 2):
+                return True
+
+        return False
 
     ######################################################
     # Checking....

@@ -1,12 +1,13 @@
-import pygame
 import copy
-
-from tuioclient.Listener import Listener
-from objects.colorGenerator import ColorGenerator
-from gestures.gestureHandler import GestureHandler
-from dollar import Dollar
-from pythontuio import TuioClient
 from threading import Thread
+
+import pygame
+from pythontuio import TuioClient
+
+from dollar import Dollar
+from gestures.gestureHandler import GestureHandler
+from objects.colorGenerator import ColorGenerator
+from tuioclient.Listener import Listener
 
 
 class Play:
@@ -17,10 +18,11 @@ class Play:
 
         # State Machine
         self.first_draw_after_reset_done = False
-        self.reset_gesture = 'check'
+        self.reset_gesture = 'delete'
         self.none_state = 'None'
         self.actual_state = self.none_state
         self.drawn_points = []
+        self.drawn_objects = []
 
         # Main Stuff
         self.display_height = 600
@@ -130,33 +132,42 @@ class Play:
             self.actual_state = self.none_state
             self.first_draw_after_reset_done = False
             self.color_object = self.color_generator.get_new_color_preset()
+            # ToDo: Check
+            self.drawn_objects = []
 
         # ElseIf actual gesture is not the reset gesture (of course delete)
         elif self.actual_gesture != self.reset_gesture:
-
             if not self.first_draw_after_reset_done:
+                # if not self.first_draw_after_reset_done:
                 # Now we can draw a new gesture
                 self.actual_state = self.actual_gesture
-                self.first_draw_after_reset_done = True
+
                 new_points = copy.deepcopy(self.points)
                 self.drawn_points = []
                 scale = 1.0
                 for pnt in new_points:
                     (x, y) = pnt
                     x *= self.display_width * x * scale
-                    y *= self.display_width * y * scale
+                    y *= self.display_height * y * scale
                     self.drawn_points.append([x, y])
+                # ToDo: Check
+                self.drawn_objects.append((copy.deepcopy(self.drawn_points)))
+                if len(self.drawn_objects) >= 2:  # Max 2 objects
+                    self.first_draw_after_reset_done = True
 
     # Acts depending on the state of the state machine
     def handle_state(self):
 
-        if self.actual_state != self.none_state:
-            if len(self.drawn_points) > 2:
-                # pygame.draw.lines(self.screen, (0, 255, 0), False, self.drawn_points, 5)
-                self.drawn_points = self.gesture_handler.handle(self.drawn_points, self.actual_cursor, self.old_cursors)
-                pygame.draw.lines(self.screen, self.color_object, False, self.drawn_points, 5)
-                # pygame.draw.circle(self.screen, self.color_cursor, (200, 200), 200)
-                # display the drawn figure
+        self.drawn_objects = self.gesture_handler.handle(self.drawn_objects, self.actual_cursor, self.old_cursors)
+        # ToDo: Draw all new objects....
+        for drawn_object in self.drawn_objects:
+            if len(drawn_object) > 2:
+                pygame.draw.lines(self.screen, self.color_object, False, drawn_object, 5)
+        # pygame.draw.circle(self.screen, self.color_cursor, (200, 200), 200)
+        # display the drawn figure
+        pass
+
+    pass
 
     def run(self):
 
@@ -185,7 +196,6 @@ class Play:
 
                 # TUIO Event, new cursor
                 elif event.type == self.event_down:
-                    self.move(self.actual_cursor)
                     pass
 
                 # TUIO Event, cursor move (one or more)
